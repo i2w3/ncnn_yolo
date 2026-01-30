@@ -348,7 +348,6 @@ class NCNNRunner:
         all_kps = []
 
         num_classes = predictions.shape[1] - 4 - (3 * self.kps)
-        print(num_classes)
         
         for pred in predictions:
             score = pred[4:4+num_classes]
@@ -447,6 +446,4 @@ if __name__ == "__main__":
                 pt2 = res.keypoints[sk[1]].pt.pt
                 if res.keypoints[sk[0]].score >= model.kps_threshold and res.keypoints[sk[1]].score >= model.kps_threshold:
                     cv2.line(image, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), (0, 255, 0), 2)
-
-    cv2.imshow("Result", image)
-    cv2.waitKey(0)
+    cv2.imwrite(f"./assets/ncnn_{args.task}.jpg", image)

@@ -1,4 +1,9 @@
 # ncnn runner
+![](./assets/ncnn_det.jpg)
+![](./assets/ncnn_obb.jpg)
+![](./assets/ncnn_pose.jpg)
+![](./assets/ncnn_seg.jpg)
+
 ## convert model
 `ultralytics == 8.4.7` 内置了 `ncnn` 导出功能，可以直接运行下面命令下载并转换模型：
 ```bash
