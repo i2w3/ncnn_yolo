@@ -101,8 +101,7 @@ class NCNNRunner:
         img_h, img_w = image_data.shape[:2]
         scale = self.size / max(img_h, img_w)
         new_h, new_w = int(img_h * scale), int(img_w * scale)
-        resized_img = cv2.resize(image_data, (new_w, new_h))
-
+        
         pad_w = (self.size - new_w) / 2.
         pad_h = (self.size - new_h) / 2.
 
@@ -119,6 +118,7 @@ class NCNNRunner:
         blob_img.substract_mean_normalize(mean_vals, norm_vals)
 
         # 2. numpy array
+        # resized_img = cv2.resize(image_data, (new_w, new_h))
         # pad_img = cv2.copyMakeBorder(resized_img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[114, 114, 114]) # 灰色填充
         # blob_img = cv2.dnn.blobFromImage(pad_img, 1/255.0, (self.size, self.size), swapRB=True, crop=False, ddepth=cv2.CV_32F)
 
