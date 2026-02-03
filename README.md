@@ -1,10 +1,12 @@
+# TODO:
+- [ ] 更新数据结构，如：std::vector<std::vector<int>> -> std::vector<cv::Point> 等
+
 # ncnn runner
 | VERSION | cls | det | obb | pose | seg |
 | :----: | :----: | :----: | :----: | :----: | :----: |
 | v8n | ![](./assets/ncnn_yolov8n-cls.jpg) | ![](./assets/ncnn_yolov8n.jpg) | ![](./assets/ncnn_yolov8n-obb.jpg) | ![](./assets/ncnn_yolov8n-pose.jpg) | ![](./assets/ncnn_yolov8n-seg.jpg) |
 | 11n | ![](./assets/ncnn_yolo11n-cls.jpg) | ![](./assets/ncnn_yolo11n.jpg) | ![](./assets/ncnn_yolo11n-obb.jpg) | ![](./assets/ncnn_yolo11n-pose.jpg) | ![](./assets/ncnn_yolo11n-seg.jpg) |
 | 12n | NONE | ![](./assets/ncnn_yolo12n.jpg) | NONE | NONE | NONE |
-
 
 
 ## convert model
@@ -32,4 +34,20 @@ python ./python/yolo_runner.py pose models/yolo11n-pose_ncnn_model images/zidane
 
 # YOLO12
 python ./python/yolo_runner.py det models/yolo12n_ncnn_model images/bus.jpg
+```
+
+## cpp
+```bash
+vcpkg install ncnn[vulkan] nlohmann-json
+# opencv 建议使用对应系统预编译好的版本
+cd cpp
+cmake --preset release
+cmake --build build/release
+cd ..
+# 根路径下运行，因为需要读取 config.json
+./cpp/build/release/bin/main cls ./models/yolo11n-cls_ncnn_model ./images/bus.jpg
+./cpp/build/release/bin/main det ./models/yolo11n_ncnn_model ./images/bus.jpg
+./cpp/build/release/bin/main obb ./models/yolo11n-obb_ncnn_model ./images/P0015.jpg
+./cpp/build/release/bin/main seg ./models/yolo11n-seg_ncnn_model ./images/bus.jpg
+./cpp/build/release/bin/main pose ./models/yolo11n-pose_ncnn_model ./images/zidane.jpg
 ```

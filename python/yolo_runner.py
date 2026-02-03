@@ -418,29 +418,25 @@ if __name__ == "__main__":
     class_names = config[args.task]["class_names"]
     cls_initpos = (10, 20) # 分类文本位置
     for res in results:
+        label = f"{class_names[res.class_id]}: {res.score:.2f}"
+        print(f"[RESULT] {label}")
         if args.task == "cls":
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", cls_initpos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", cls_initpos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(image, label, cls_initpos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
+            cv2.putText(image, label, cls_initpos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             cls_initpos = (cls_initpos[0], cls_initpos[1] + 20)
         elif args.task == "det":
             box = res.box
             cv2.rectangle(image, (box[0][0], box[0][1]), (box[1][0], box[1][1]), (0, 255, 0), 2)
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(image, label, (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
+            cv2.putText(image, label, (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         elif args.task == "obb":
             box = res.box
             cv2.polylines(image, [np.array(box, dtype=np.int32)], isClosed=True, color=(0, 255, 0), thickness=2)
-        elif args.task == "seg":
-            box = res.box
-            cv2.rectangle(image, (box[0][0], box[0][1]), (box[1][0], box[1][1]), (0, 255, 0), 2)
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            cv2.drawContours(image, [res.contour], -1, (255, 0, 0), 2)
         elif args.task == "pose":
             box = res.box
             cv2.rectangle(image, (box[0][0], box[0][1]), (box[1][0], box[1][1]), (0, 255, 0), 2)
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
-            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(image, label, (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
+            cv2.putText(image, label, (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             skeleton = config[args.task]["skeleton"]
             for kp in res.keypoints:
                 if kp.score >= model.kps_threshold:
@@ -450,4 +446,10 @@ if __name__ == "__main__":
                 pt2 = res.keypoints[sk[1]].pt.pt
                 if res.keypoints[sk[0]].score >= model.kps_threshold and res.keypoints[sk[1]].score >= model.kps_threshold:
                     cv2.line(image, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), (0, 255, 0), 2)
+        elif args.task == "seg":
+            box = res.box
+            cv2.rectangle(image, (box[0][0], box[0][1]), (box[1][0], box[1][1]), (0, 255, 0), 2)
+            cv2.putText(image, label, (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
+            cv2.putText(image, label, (box[0][0], box[0][1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.drawContours(image, [res.contour], -1, (255, 0, 0), 2)
     cv2.imwrite(f"./assets/ncnn_{Path(args.model_path).stem.split('_')[0]}.jpg", image)
