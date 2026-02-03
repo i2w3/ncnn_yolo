@@ -51,7 +51,7 @@ class NCNNRunner:
         self.task = task
         self.net = ncnn.Net()
         self.net.opt.num_threads = 4
-        self.net.opt.use_vulkan_compute = False # windows 下默认关闭 Vulkan
+        self.net.opt.use_vulkan_compute = False # 根据需要启用 Vulkan 加速，否则使用 CPU
         r1 = self.net.load_param(str(self.model_path / "model.ncnn.param"))
         r2 = self.net.load_model(str(self.model_path / "model.ncnn.bin"))
 
@@ -73,6 +73,7 @@ class NCNNRunner:
         self.iou_threshold  = 0.45
         self.mask_threshold = 0.5
         self.kps_threshold  = 0.5
+        self.max_det = 300
 
         # 仅硬编码 pose 关键点数量, num_classes 和 mask_protos_size 在推理时动态获取
         self.kps = 17
@@ -97,33 +98,33 @@ class NCNNRunner:
     
     def preProcess(self, image_data:np.ndarray) -> np.ndarray:
         # LetterBox mode
-        h, w = image_data.shape[:2]
-        scale = self.size / max(h, w)
-        nh, nw = int(h * scale), int(w * scale)
-        resized_img = cv2.resize(image_data, (nw, nh))
+        img_h, img_w = image_data.shape[:2]
+        scale = self.size / max(img_h, img_w)
+        new_h, new_w = int(img_h * scale), int(img_w * scale)
+        resized_img = cv2.resize(image_data, (new_w, new_h))
 
-        padW = (self.size - nw) / 2.
-        padH = (self.size - nh) / 2.
+        pad_w = (self.size - new_w) / 2.
+        pad_h = (self.size - new_h) / 2.
 
-        top = int(padH - 0.1)
-        bottom = int(padH + 0.1)
-        left = int(padW - 0.1)
-        right = int(padW + 0.1)
+        top = int(pad_h - 0.1)
+        bottom = int(pad_h + 0.1)
+        left = int(pad_w - 0.1)
+        right = int(pad_w + 0.1)
 
-        boxed_img = cv2.copyMakeBorder(resized_img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[114, 114, 114]) # 灰色填充
-
-        # 1. cv2.dnn.blobFromImage
-        # blob = cv2.dnn.blobFromImage(boxed_img, 1/255.0, (self.size, self.size), swapRB=True, crop=False, ddepth=cv2.CV_32F)
-
-        # 2. ncnn Mat
-        mat_in = ncnn.Mat.from_pixels(boxed_img,ncnn.Mat.PixelType.PIXEL_BGR, boxed_img.shape[1], boxed_img.shape[0])
+        # 1. ncnn mat
+        ncnn_img = ncnn.Mat.from_pixels_resize(image_data, ncnn.Mat.PixelType.PIXEL_BGR2RGB, img_w, img_h, new_w, new_h)
+        blob_img = ncnn.copy_make_border(ncnn_img, top, bottom, left, right, ncnn.BorderType.BORDER_CONSTANT, 114.0)
         mean_vals = []
         norm_vals = [1 / 255.0, 1 / 255.0, 1 / 255.0]
-        mat_in.substract_mean_normalize(mean_vals, norm_vals)
+        blob_img.substract_mean_normalize(mean_vals, norm_vals)
 
-        return YOLOInput(image=image_data, blob=mat_in, top=top, bottom=bottom, left=left, right=right, scale=scale)
+        # 2. numpy array
+        # pad_img = cv2.copyMakeBorder(resized_img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[114, 114, 114]) # 灰色填充
+        # blob_img = cv2.dnn.blobFromImage(pad_img, 1/255.0, (self.size, self.size), swapRB=True, crop=False, ddepth=cv2.CV_32F)
+
+        return YOLOInput(image=image_data, blob=blob_img, top=top, bottom=bottom, left=left, right=right, scale=scale)
     
-    def ncnn_infer(self, input_blob:np.ndarray) -> List[np.ndarray]:
+    def ncnn_infer(self, input_blob:Union[np.ndarray, ncnn.Mat]) -> List[np.ndarray]:
         outs = []
         with self.net.create_extractor() as ex:
             if type(input_blob) is np.ndarray:
@@ -197,7 +198,7 @@ class NCNNRunner:
 
         results = []
         img_h, img_w = yolo_input.image.shape[:2]
-        for i in indices:
+        for i in indices[:self.max_det]:
             box = boxes[i] # [x, y, w, h] 在 640x640 画布上的坐标
             score = confidences[i]
             class_id = class_ids[i]
@@ -240,7 +241,7 @@ class NCNNRunner:
         
         results = []
         img_h, img_w = yolo_input.image.shape[:2]
-        for i in indices:
+        for i in indices[:self.max_det]:
             box = cv2.boxPoints(boxes[i]).tolist() # 四个点坐标列表
             score = confidences[i]
             class_id = class_ids[i]
@@ -286,7 +287,7 @@ class NCNNRunner:
 
         results = []
         img_h, img_w = yolo_input.image.shape[:2]
-        for i in indices:
+        for i in indices[:self.max_det]:
             box = boxes[i] # [x, y, w, h] 在 640x640 画布上的坐标
             score = confidences[i]
             class_id = class_ids[i]
@@ -373,7 +374,7 @@ class NCNNRunner:
 
         results = []
         img_h, img_w = yolo_input.image.shape[:2]
-        for i in indices:
+        for i in indices[:self.max_det]:
             box = boxes[i] # [x, y, w, h] 在 640x640 画布上的坐标
             score = confidences[i]
             class_id = class_ids[i]
@@ -415,9 +416,12 @@ if __name__ == "__main__":
     with open("config.json", "r") as f:
         config = json.load(f)
     class_names = config[args.task]["class_names"]
+    cls_initpos = (10, 20) # 分类文本位置
     for res in results:
         if args.task == "cls":
-            print(f"Class: {class_names[res.class_id]}, Score: {res.score:.4f}")
+            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", cls_initpos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
+            cv2.putText(image, f"{class_names[res.class_id]}: {res.score:.2f}", cls_initpos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cls_initpos = (cls_initpos[0], cls_initpos[1] + 20)
         elif args.task == "det":
             box = res.box
             cv2.rectangle(image, (box[0][0], box[0][1]), (box[1][0], box[1][1]), (0, 255, 0), 2)
@@ -446,4 +450,4 @@ if __name__ == "__main__":
                 pt2 = res.keypoints[sk[1]].pt.pt
                 if res.keypoints[sk[0]].score >= model.kps_threshold and res.keypoints[sk[1]].score >= model.kps_threshold:
                     cv2.line(image, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), (0, 255, 0), 2)
-    cv2.imwrite(f"./assets/ncnn_{args.task}.jpg", image)
+    cv2.imwrite(f"./assets/ncnn_{Path(args.model_path).stem.split('_')[0]}.jpg", image)

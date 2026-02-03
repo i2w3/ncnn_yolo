@@ -1,8 +1,11 @@
 # ncnn runner
-![](./assets/ncnn_det.jpg)
-![](./assets/ncnn_obb.jpg)
-![](./assets/ncnn_pose.jpg)
-![](./assets/ncnn_seg.jpg)
+| VERSION | cls | det | obb | pose | seg |
+| :----: | :----: | :----: | :----: | :----: | :----: |
+| v8n | ![](./assets/ncnn_yolov8n-cls.jpg) | ![](./assets/ncnn_yolov8n.jpg) | ![](./assets/ncnn_yolov8n-obb.jpg) | ![](./assets/ncnn_yolov8n-pose.jpg) | ![](./assets/ncnn_yolov8n-seg.jpg) |
+| 11n | ![](./assets/ncnn_yolo11n-cls.jpg) | ![](./assets/ncnn_yolo11n.jpg) | ![](./assets/ncnn_yolo11n-obb.jpg) | ![](./assets/ncnn_yolo11n-pose.jpg) | ![](./assets/ncnn_yolo11n-seg.jpg) |
+| 12n | NONE | ![](./assets/ncnn_yolo12n.jpg) | NONE | NONE | NONE |
+
+
 
 ## convert model
 `ultralytics == 8.4.7` 内置了 `ncnn` 导出功能，可以直接运行下面命令下载并转换模型：
